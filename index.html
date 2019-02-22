@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ru">
+ <head>
+  <title>IT Hub</title>
+  
+  <script src="https://aframe.io/releases/0.8.0/aframe.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r68/three.min.js"></script>
+ 
+  <link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,700" rel="stylesheet">
+  <link rel="stylesheet" href="MyFontsWebfontsKit.css">
+  <link rel="stylesheet" href="style.css">
+ </head>
+<body>
+<script>window.onload = main;
+
+var shouldUpdateParticleMap = true;
+var shouldUpdateWave1 = false;
+var shouldUpdateWave2 = false;
+
+function main()
+{
+  drawPath('#path-top', 0, 0.1);
+  drawPath('#path-macc', 0.07, 0.15);
+  drawPath('#path-academy', 0.2, 0.15);
+  drawPath('#path-college', 0.32, 0.15);
+  drawPath('#path-team', 0.45, 0.22);
+  drawPath('#path-news', 0.65, 0.25);
+  
+  Wave(1);
+  Wave(2);
+  particles();
+  
+   window.addEventListener("scroll", function(e) {
+    var scrollPercentage = (document.documentElement.scrollTop + document.body.scrollTop) / (document.documentElement.scrollHeight - document.documentElement.clientHeight);
+      console.log(scrollPercentage);
+      if (scrollPercentage > 0.5) 
+      {
+      	 shouldUpdateWave1 = true;
+      	 shouldUpdateParticleMap = shouldUpdateWave2 = false;    
+      } 
+      else if (scrollPercentage > 0.1) 
+      {
+      	 shouldUpdateWave2 = true;
+      	 shouldUpdateParticleMap = shouldUpdateWave1 = false;    
+      } 
+      
+      else {
+       console.log("particle");
+      	 shouldUpdateParticleMap = true;
+      	 shouldUpdateWave1 = shouldUpdateWave2 = false;
+      }
+    });
+      
+ 
+}
+
+
+function drawPath (id, offset, partPercentage)
+{
+    var path = document.querySelector(id);
+    var pathLength = path.getTotalLength();
+
+    path.style.strokeDasharray = pathLength + ' ' + pathLength;
+    path.style.strokeDashoffset = pathLength;
+    path.getBoundingClientRect();
+
+    window.addEventListener("scroll", function(e) {
+    var scrollPercentage = (document.documentElement.scrollTop + document.body.scrollTop) / (document.documentElement.scrollHeight - document.documentElement.clientHeight) - offset;
+
+scrollPercentage = scrollPercentage / partPercentage;
+
+      var drawLength = pathLength * scrollPercentage;  
+      path.style.strokeDashoffset = pathLength - drawLength;
+  
+});
+}
+
+function Wave(type)
+{
+
+//ThreeJs Particle Waves:
+var TYPE = type;
+var SEPARATION = 80, AMOUNTX = 120, AMOUNTY = 25;
+if (TYPE != 1) { SEPARATION = 40, AMOUNTX = 100, AMOUNTY = 55; }
+
+var container;
+var camera, scene, renderer;
+
+var particles, particle, count = 0;
+
+var windowHalfX = window.innerWidth / 2;
+var windowHalfY = window.innerHeight / 2;
+
+function initWaves() {
+
+  container = document.getElementById("waves" + TYPE);
+	
+	camera = new THREE.PerspectiveCamera( 120, window.innerWidth / window.innerHeight, 1, 10000 );
+	camera.position.y = 150; //changes how far back you can see i.e the particles towards horizon
+  
+  if (TYPE == 0) {
+  camera.position.z = 300; //This is how close or far the particles are seen
+	
+	camera.rotation.x = 0.35;
+  }
+  else if (TYPE == 1){
+	camera.position.z = 0;	
+	camera.rotation.x = 0.15;
+	camera.rotation.y = 0.0;
+  camera.rotation.z = -0.5;
+  }
+  else {
+  camera.position.z = 0;	
+	camera.rotation.x = 0.15; /* 0.35  */
+	camera.rotation.y = 0.35;
+  }
+  
+	scene = new THREE.Scene();
+
+	particles = new Array();
+
+	var PI2 = Math.PI * 2;
+  var color = 0x164d4b;
+  if (TYPE != 1) {color = 0x939393; }
+	var material = new THREE.SpriteCanvasMaterial( {
+
+		color: color, //changes color of particles
+		program: function ( context ) {
+
+			context.beginPath();
+			context.arc( 0, 0, 0.1, 0, PI2, true );
+			context.fill();
+
+		}
+
+	} );
+
+	var i = 0;
+
+	for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
+
+		for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
+
+			particle = particles[ i ++ ] = new THREE.Sprite( material );
+			particle.position.x = ix * SEPARATION - ( ( AMOUNTX * SEPARATION ) / 2 );
+			particle.position.z = iy * SEPARATION - ( ( AMOUNTY * SEPARATION ) - 10 );
+			scene.add( particle );
+
+		}
+
+	}
+
+	renderer = new THREE.CanvasRenderer();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setClearColor( 0xffffff, 0);
+	container.appendChild( renderer.domElement );
+
+	window.addEventListener( 'resize', onWindowResize, false );
+
+}
+
+function renderWaves() {
+if (TYPE == 1 && !shouldUpdateWave1) return;
+if (TYPE == 2 && !shouldUpdateWave2) return;
+
+	var i = 0;
+
+	for ( var ix = 0; ix < AMOUNTX; ix ++ ) {
+
+		for ( var iy = 0; iy < AMOUNTY; iy ++ ) {
+
+			particle = particles[ i++ ];
+      
+      if (TYPE == 0) {
+      	particle.position.y = ( Math.sin( ( ix + count ) * 0.5 ) * 20 ) + ( Math.sin( ( iy + count ) * 0.5 ) * 20 );
+      }
+			else if (TYPE == 1) particle.position.y = ( Math.sin( ( ix/2 + count/1.5)*0.2 ) * 150 ) + ( Math.sin( ( iy + count ) * 0.5 ) * 50 );
+      else particle.position.y = ( Math.sin( ( ix + count ) * 0.5 ) * 20 ) + ( Math.sin( ( iy + count ) * 0.5 ) * 20 ) - ix*2;
+      
+      if (iy > 20) particle.position.y = particle.position.y / (iy/8);
+      
+			particle.scale.x = particle.scale.y = ( Math.sin( ( ix + count ) * 0.3 ) + 2 ) * 15 + ( Math.sin( ( iy + count ) * 0.5 ) + 1 ) * 15;
+
+		}
+
+	}
+
+	renderer.render( scene, camera );
+
+	// This increases or decreases speed
+	count += 0.2;
+
+}
+
+function onWindowResize() {
+
+	windowHalfX = window.innerWidth / 2;
+	windowHalfY = window.innerHeight / 2;
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight );
+
+}
+
+function animateWaves() {
+
+	requestAnimationFrame( animateWaves );
+
+	renderWaves();
+
+}
+
+initWaves();
+animateWaves();
+}
+
+function particles() {
+ var canvasInteractive = document.getElementById('canvas-interactive'),
+          canvasReference = document.getElementById('canvas-reference');
+      
+      var contextInteractive = canvasInteractive.getContext('2d'),
+          contextReference = canvasReference.getContext('2d');
+
+      var image = document.getElementById('img');
+      console.log(image);
+      var width = canvasInteractive.width = canvasReference.width = 880; //window.innerWidth + 300;
+      var height = canvasInteractive.height = canvasReference.height = 723; //window.innerHeight + 150;
+      
+      var logoDimensions = {
+        x: 972,
+        y: 450
+      };
+
+      var center = {
+        x: width / 2 ,
+        y: height / 2
+      };
+      
+      var logoLocation = {
+        x: center.x - logoDimensions.x / 2,
+        y: center.y - logoDimensions.y / 2
+      };
+      
+      var mouse = {
+        radius: Math.pow(100, 2),
+        x: 0,
+        y: 0
+      };
+      
+      var particleArr = [];
+      var particleAttributes = {
+        friction: 0.95,
+        ease: 0.039, /* 0.019 */
+        spacing: 5, /* 4, 5 */
+        size: 3, /* 3, 2 */
+        color: "#444" //#333 #888
+      };
+
+      function Particle(x, y) {
+      	this.x = Math.random()*Math.random()*1000;
+        this.originX = x;
+        this.y = Math.random()*Math.random()*1000;
+        this.originY = y;
+        this.rx = 0;
+        this.ry = 0;
+        this.vx = 0;
+        this.vy = 0;
+        this.force = 0;
+        this.angle = 0;
+        this.distance = 0;
+      };
+      
+      Particle.prototype.update = function() {
+        this.rx = mouse.x - this.x;
+        this.ry = mouse.y - this.y;
+        this.distance = this.rx * this.rx + this.ry * this.ry;
+        this.force = -mouse.radius / this.distance;
+        if(this.distance < mouse.radius) {
+          this.angle = Math.atan2(this.ry, this.rx);
+          this.vx += this.force * Math.cos(this.angle);
+          this.vy += this.force * Math.sin(this.angle);
+        }
+        this.x += (this.vx *= particleAttributes.friction) + (this.originX - this.x) * particleAttributes.ease;
+        this.y += (this.vy *= particleAttributes.friction) + (this.originY - this.y) * particleAttributes.ease;
+      };
+
+      function init() {
+        contextReference.drawImage(image, logoLocation.x, logoLocation.y);
+        var pixels = contextReference.getImageData(0, 0, width, height).data;
+        var index;
+        for(var y = 0; y < height; y += particleAttributes.spacing) {
+          for(var x = 0; x < width; x += particleAttributes.spacing) {
+            index = (y * width + x) * 4;
+            if(pixels[++index] > 0) {
+                particleArr.push(new Particle(x, y));
+            }
+          }
+        }
+      };
+      
+      init();
+
+      function update() {
+      if (!shouldUpdateParticleMap) return;
+        for(var i = 0; i < particleArr.length; i++) {
+          var p = particleArr[i];
+          p.update();
+        }
+      };
+
+      function render() {
+      if (!shouldUpdateParticleMap) return;
+        contextInteractive.clearRect(0, 0, width, height);
+        for(var i = 0; i < particleArr.length; i++) {
+          var p = particleArr[i];
+           var color = (p.x-100)/4;
+          contextInteractive.fillStyle =  particleAttributes.color; //`rgb(${color}, ${color}, ${color})`; 
+          contextInteractive.fillRect(p.x, p.y, particleAttributes.size, particleAttributes.size);
+        }
+      };
+
+      function animate() {      	
+        update();
+        render();
+        requestAnimationFrame(animate);
+      }
+      animate();
+      
+      function debounce(func){
+        var timer;
+        return function(event){
+          if(timer) clearTimeout(timer);
+          timer = setTimeout(func,100,event);
+        };
+      }
+  
+      
+}
+</script>
+ 
+<div id = "waves0"></div>
+<div id = "waves1"></div>
+<div id = "waves2"></div>
+<div id = "waves3"></div>
+
+<div class = "svg-page">
+  <div class = "svg-wrapper">
+    <div class = "fixed-width">
+    <svg class = "svg-lines" height="6500" width="4200" viewbox= "-1000 0 4200 6500">
+     <path id = "path-top" d="M 300 0 l 0 316 l 39 0 l 0 612 q 0 50 50 50 l 340 0 " />
+     <path id = "path-macc" d="M 2200 1401 l -1358 0 q -50 0 -50 50 l 0 278 q 0 50 -50 50 l -305 0" />
+     <path id = "path-academy" d="M -1000 2200 l 1289 0 q 50 0 50 50 l 0 278 q 0 50 50 50 l 340 0" />
+     <path id = "path-college" d="M 2200 3001 l -1358 0 q -50 0 -50 50 l 0 278 q 0 50 -50 50 l -305 0" />
+      <path id = "path-team" d="M -1000 3801 l 1350 0 q 50 0 50 50 l 0 278 q 0 50 -50 50 l -1350 0" />
+       <path id = "path-news" d="M -1000 4979 l 2010 0 q 50 0 50 50 l 0 700 q 0 50 -50 50 l -2010 0" />
+     <path d="M 300 285 l 0 72 M 339 285 l 0 72 M 300 316 l 39 0 " />
+
+    </svg>
+    </div>
+  </div>
+</div>
+
+
+  
+<section class = "first-section fixed-width">
+             <canvas class = "particles" id="canvas-reference"></canvas>
+  <canvas class = "particles" id="canvas-interactive"></canvas>
+  
+   <img crossOrigin="Anonymous" id="img" src="map450.png" alt="map">
+  <div class = "top row">
+      <span class = "phone">+7 (499) 490-13-11</span>
+     
+      <div class = "row menu-row">
+        <span class = "different">#МыДругие</span>
+        <a class = "menu" href = "/">Menu  
+        </a>
+        <a href = "/"><img src="menu.png" height="24" width="21" alt="Menu"></a>
+      </div>
+      
+  </div>
+ 
+  <div class = "social">
+  <a href = "/"><img src="twitter-logo-silhouette.png" alt="Twitter"></a>  
+  <a href = "/"><img src="vk-social-network-logo.png" alt="VK"></a>
+  <a href = "/"><img src="facebook-logo.png" alt="Facebook"></a>
+   
+  </div>
+  
+  <div class="meet-us">Давайте знакомиться</div>
+  
+  <div class = "home">/ 01 home<div class = "home-rect"></div></div>
+
+  
+  <div class = "pulse">
+      <div class="pulsating-outer"></div>   
+      <div class="pulsating-circle"></div>   
+      <div class="pulse-center"></div> 
+  </div>
+  
+ 
+    
+  <h1>Новый формат обучения 
+в сфере IT-технологий</h1>
+
+  <div class = "logo">
+  
+  it hub <div class = "logo-2"> group </div></div>
+  
+</section>
+
+<section class = "mbta fixed-width row">
+  <div class = "column-image">
+  <div class = "image-border">
+   <img src="mbta.png" alt="MBTA">
+  </div>
+ 
+  </div>
+
+  <div class = "column-text">
+   <h2>MBTA</h2>
+   <div class = "button-lines">
+         <div class = "skew-block"></div>
+         <div class = "line1"></div>
+         <div class = "line2"></div>
+         <a class = "skew-button"><span>Подробнее</span></a>
+   </div>    
+    <p>
+    Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod 
+  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim 
+  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip 
+  ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
+  in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa 
+  qui officia deserunt mollit anim id est laborum.
+    </p>
+    <div class = "projects-link">
+    <a href = "/">Все проекты</a>
+    </div>
+
+  </div>
+
+</section>
+
+<section class = "macc fixed-width row">
+
+  <div class = "column-text">
+   <h2>MACC</h2>
+    <div class = "button-lines">
+         <a class = "skew-button"><span>Подробнее</span></a>
+         <div class = "skew-block"></div>
+         <div class = "line1"></div>
+         <div class = "line2"></div>         
+   </div>    
+    <p>
+    Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod 
+  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim 
+  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip 
+  ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
+  in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa 
+  qui officia deserunt mollit anim id est laborum.
+    </p>
+    <div class = "projects-link">
+    <a href = "/">Все проекты</a>
+    </div>
+
+  </div>
+
+  <div class = "column-image">
+  <div class = "image-border">
+  <img src="macc.png" alt="MACC">
+   </div>
+  </div>
+
+</section>
+
+<section class = "academy fixed-width row">
+  <div class = "column-image">
+  <div class = "image-border">
+  <img src="academy.png" alt="Academy">
+  </div>
+ </div>
+  <div class = "column-text">
+   <h2>Academy</h2>
+   <div class = "button-lines">
+         <div class = "skew-block"></div>
+         <div class = "line1"></div>
+         <div class = "line2"></div>
+         <a class = "skew-button"><span>Подробнее</span></a>
+   </div>    
+    <p>
+    Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod 
+  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim 
+  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip 
+  ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
+  in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa 
+  qui officia deserunt mollit anim id est laborum.
+    </p>
+    <div class = "projects-link">
+    <a href = "/">Все проекты</a>
+    </div>
+
+  </div>
+
+</section>
+
+<section class = "college fixed-width row">
+
+  <div class = "column-text">
+   <h2>College</h2>
+    <div class = "button-lines">
+         <div class = "skew-block"></div>
+         <div class = "line1"></div>
+         <div class = "line2"></div>
+         <a class = "skew-button"><span>Подробнее</span></a>
+   </div>    
+    <p>
+    Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod 
+  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim 
+  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip 
+  ex ea commodo consequat. Duis aute irure dolor in reprehenderit 
+  in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa 
+  qui officia deserunt mollit anim id est laborum.
+    </p>
+    <div class = "projects-link">
+    <a href = "/">Все проекты</a>
+    </div>
+
+  </div>
+
+  <div class = "column-image">
+  <div class = "image-border">
+  <img src="college.png" alt="College">
+  </div>
+  </div>
+
+</section>
+
+<section class = "team fixed-width">
+  <h2>Команда</h2>
+  
+  <div class = "slider">
+    <div class = "row">
+  <a class = "team-member" href = "/"><img src="team1.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team2.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team3.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team4.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team5.png" alt="Team"></a>
+  </div>
+    <div class = "row">
+  <a class = "team-member" href = "/"><img src="team1.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team2.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team3.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team4.png" alt="Team"></a>
+  <a class = "team-member" href = "/"><img src="team5.png" alt="Team"></a>
+  </div>
+  </div>
+
+</section>
+
+<section class = "news fixed-width">
+  <h2>Новости</h2>
+  <div class = "row">
+    <div class = "news-column-1">
+        <a class = "news-article" href = "/"><img src="news1.png" alt="News"></a>
+    </div>
+    
+     <div class = "news-column-2">
+        <a class = "news-article" href = "/"><img src="news2.png" alt="News"></a>
+        <a class = "news-article" href = "/"><img src="news3.png" alt="News"></a>
+    </div>
+  </div>
+</section>
+
+<section class = "partners fixed-width">
+  <h2>Партнеры</h2>
+  <div class = "partners-grid">
+      <div class = "partner">
+      <img src="mercedes.png" alt="Partner">
+      </div>
+       <div class = "partner">
+      <img src="microsoft.png" alt="Partner">
+      </div>
+       <div class = "partner">
+      <img src="cisco.png" alt="Partner">
+      </div>
+       <div class = "partner">
+      <img src="adobe.png" alt="Partner">
+      </div> 
+   <div class = "partner">
+      <img src="autodesk.png" alt="Partner">
+       </div>
+       <div class = "partner">
+      <img src="audi.png" alt="Partner">
+      </div>
+      <div class = "partner">
+      <img src="tommy.png" alt="Partner">
+       </div>
+       <div class = "partner">
+      <img src="mcdonalds.png" alt="Partner">
+      </div>
+  </div>
+  </section>
+ 
+<section class = "panorama fixed-width"><a-scene embedded>
+  <a-assets>
+    <img id="sky" src="https://c1.staticflickr.com/5/4336/36519719314_066967a8a0_b.jpg">
+  </a-assets>
+  <a-sky src="#sky"></a-sky>
+</a-scene></section>
+
+<section class = "footer fixed-width">
+<div class = "row">
+    <div class = "contacts">
+        <h3>Адрес</h3>
+        <p>Москва, ул. Марксисткая, дом 34, корп. 7</p>
+        <p>Таганская, Марксисткая, Пролетарская</p>
+
+        <h3>График работы</h3>
+        <p>Рабочие дни: 9:00 - 19:00</p>
+        <p>Суббота: 10:00 - 14:00</p>
+
+        <h3>Пишите</h3>
+        <p>priem@college-mirbis.ru</p>
+
+        <h3>Звоните</h3>
+        <p>+7 (499) 490-13-11</p>
+    </div>
+    
+    <div class = "map">
+    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2246.3051986077176!2d37.6617523162301!3d55.73582598054883!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46b54adcf06c1bbf%3A0x737e60d3164b6564!2z0JzQsNGA0LrRgdC40YHRgtGB0LrQsNGPINGD0LsuLCAzNCwg0JzQvtGB0LrQstCwLCAxMDkxNDc!5e0!3m2!1sru!2sru!4v1548010019813" width="470" height="385" frameborder="0" style="border:0" allowfullscreen></iframe>
+    </div>
+</div>
+
+</section>
+  
+  
+
+</body>
+</html>
